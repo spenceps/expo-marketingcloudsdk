@@ -29,7 +29,7 @@ const withConfigureRepository: ConfigPlugin<MarketingCloudSdkPluginValidProps> =
   return withAppBuildGradle(config, async config => {
     config.modResults.contents = mergeContents({
       src: config.modResults.contents,
-      newSrc: `    implementation 'com.salesforce.marketingcloud:marketingcloudsdk:8.1.4'`,
+      newSrc: `    implementation 'com.salesforce.marketingcloud:marketingcloudsdk:8.1.5'`,
       anchor: /dependencies\s?{/,
       offset: 1,
       tag: '@allboatsrise/expo-marketingcloudsdk(maven:dependencies)',

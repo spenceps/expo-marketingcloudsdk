@@ -96,5 +96,5 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${getKotlinVersion()}"
   implementation 'com.facebook.react:react-native:+'
   implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3"
-  api "com.salesforce.marketingcloud:marketingcloudsdk:8.1.4"
+  api "com.salesforce.marketingcloud:marketingcloudsdk:8.1.5"
 }
