@@ -19,7 +19,6 @@ import java.text.SimpleDateFormat
 
 
 class ExpoMarketingCloudSdkModule : Module() {
-  private var numberOfListeners = 0
   private var logListener : LogListener? = null
   private var inboxResponseListener : InboxResponseListener? = null
   private var registrationListener : RegistrationEventListener? = null
@@ -189,9 +188,7 @@ class ExpoMarketingCloudSdkModule : Module() {
       }
     }
 
-    Function("addListener") {eventName: String ->
-      numberOfListeners++
-
+    AsyncFunction("startObserving") {eventName: String? ->
       when (eventName) {
         "onLog" -> {
           if (logListener == null) {
@@ -268,35 +265,40 @@ class ExpoMarketingCloudSdkModule : Module() {
       }
     }
 
-    Function("removeListeners") {count: Int ->
-      numberOfListeners -= count
+    AsyncFunction("stopObserving") {eventName: String? ->
 
-      if (numberOfListeners == 0) {
-        if (logListener != null) {
-          logListener = null
-          SFMCSdk.setLogging(LogLevel.WARN, null)
+      when (eventName) {
+        "onLog" -> {
+          if (logListener != null) {
+            logListener = null
+            SFMCSdk.setLogging(LogLevel.WARN, null)
+          }
         }
 
-        val listener = inboxResponseListener
-        if (listener != null) {
-          inboxResponseListener = null
-          whenPushModuleReady(null) { mp ->
-            try {
-              mp.inboxMessageManager.unregisterInboxResponseListener(listener)
-            } catch (ex: Throwable) {
-              throw ex
+        "onInboxResponse" -> {
+          val listener = inboxResponseListener
+          if (listener != null) {
+            inboxResponseListener = null
+            whenPushModuleReady(null) { mp ->
+              try {
+                mp.inboxMessageManager.unregisterInboxResponseListener(listener)
+              } catch (ex: Throwable) {
+                throw ex
+              }
             }
           }
         }
 
-        val listener2 = registrationListener
-        if (listener2 != null) {
-          registrationListener = null
-          whenPushModuleReady(null) { mp ->
-            try {
-              mp.registrationManager.unregisterForRegistrationEvents(listener2)
-            } catch (ex: Throwable) {
-              throw ex
+        "onRegistrationResponseSucceeded" -> {
+          val listener2 = registrationListener
+          if (listener2 != null) {
+            registrationListener = null
+            whenPushModuleReady(null) { mp ->
+              try {
+                mp.registrationManager.unregisterForRegistrationEvents(listener2)
+              } catch (ex: Throwable) {
+                throw ex
+              }
             }
           }
         }
