@@ -233,11 +233,11 @@ class ExpoMarketingCloudSdkModule : Module() {
                 override fun onRegistrationReceived(it: Registration) {
                   sendEvent("onRegistrationResponseSucceeded", mapOf(
                     "response" to mapOf(
-                      "appId" to it.appId,
+                      "etAppId" to it.appId,
                       "appVersion" to it.appVersion,
                       "attributes" to it.attributes,
-                      "contactKey" to it.contactKey,
-                      "deviceId" to it.deviceId,
+                      "subscriberKey" to it.contactKey,
+                      "deviceID" to it.deviceId,
                       "dst" to it.dst,
                       "hwid" to it.hwid,
                       "locale" to it.locale,
