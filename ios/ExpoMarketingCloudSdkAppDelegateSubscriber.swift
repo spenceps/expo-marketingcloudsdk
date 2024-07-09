@@ -11,6 +11,7 @@ public class ExpoMarketingCloudSdkAppDelegateSubscriber : ExpoAppDelegateSubscri
     let accessToken = Bundle.main.object(forInfoDictionaryKey: "SFMCAccessToken") as! String
     let analyticsEnabled = Bundle.main.object(forInfoDictionaryKey: "SFMCAnalyticsEnabled") as? Bool ?? false;
     let appId = Bundle.main.object(forInfoDictionaryKey: "SFMCApplicationId") as! String
+    let applicationControlsBadging = Bundle.main.object(forInfoDictionaryKey: "SFMCApplicationControlsBadging") as? Bool ?? false;
     let delayRegistrationUntilContactKeyIsSet = Bundle.main.object(forInfoDictionaryKey: "SFMCDelayRegistrationUntilContactKeyIsSet") as? Bool ?? false;
     let inboxEnabled = Bundle.main.object(forInfoDictionaryKey: "SFMCInboxEnabled") as? Bool ?? false;
     let locationEnabled = Bundle.main.object(forInfoDictionaryKey: "SFMCLocationEnabled") as? Bool ?? false;
@@ -32,6 +33,7 @@ public class ExpoMarketingCloudSdkAppDelegateSubscriber : ExpoAppDelegateSubscri
         .setInboxEnabled(inboxEnabled)
         .setLocationEnabled(locationEnabled)
         .setAnalyticsEnabled(analyticsEnabled)
+        .setApplicationControlsBadging(applicationControlsBadging)
         .setDelayRegistrationUntilContactKeyIsSet(delayRegistrationUntilContactKeyIsSet)
         .setMarkMessageReadOnInboxNotificationOpen(markMessageReadOnInboxNotificationOpen)
     
