@@ -21,5 +21,7 @@ class ExpoMarketingCloudSdkLogger : LogOutputter {
                          : subsystem, category
                          : category, message
                          : message)
+    
+    super.out(level: level, subsystem: subsystem, category: category, message: message)
   }
 }

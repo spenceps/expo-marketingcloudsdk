@@ -2,9 +2,14 @@ import ExpoModulesCore
 import SFMCSDK
 import MarketingCloudSDK
 
+let onLogEvent = "onLog"
+let onInboxResponseEvent = "onInboxResponse"
+let onRegistrationResponseSucceededEvent = "onRegistrationResponseSucceeded"
+
 public class ExpoMarketingCloudSdkModule: Module, ExpoMarketingCloudSdkLoggerDelegate {
   private var refreshInboxPromise: Promise?
   private var logger: ExpoMarketingCloudSdkLogger?
+  private var defaultLogLevel: LogLevel = LogLevel.none
   
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
@@ -16,31 +21,40 @@ public class ExpoMarketingCloudSdkModule: Module, ExpoMarketingCloudSdkLoggerDel
     Name("ExpoMarketingCloudSdk")
 
     // Defines event names that the module can send to JavaScript.
-    Events("onLog", "onInboxResponse", "onRegistrationResponseSucceeded")
-    
-    OnStartObserving {
+    Events(onLogEvent, onInboxResponseEvent, onRegistrationResponseSucceededEvent)
+      
+    // Event: onLogEvent
+    OnStartObserving(onLogEvent) {
       if (logger == nil) {
         self.logger = ExpoMarketingCloudSdkLogger()
         self.logger!.delegate = self
-        SFMCSdk.setLogger(logLevel: .debug, logOutputter: self.logger!)
       }
-      
+      defaultLogLevel = SFMCSdk.getLogLevel()
+      SFMCSdk.setLogger(logLevel: .debug, logOutputter: self.logger!)
+    }
+    OnStopObserving(onLogEvent) {
+      SFMCSdk.setLogger(logLevel: defaultLogLevel)
+    }
+    
+    // Event: onInboxResponseEvent
+    OnStartObserving(onInboxResponseEvent) {
       NotificationCenter.default.addObserver(self, selector: #selector(self.inboxMessagesNewInboxMessagesListener), name: NSNotification.Name.SFMCInboxMessagesNewInboxMessages, object: nil)
-      
       NotificationCenter.default.addObserver(self, selector: #selector(self.inboxMessagesRefreshCompleteListener), name: NSNotification.Name.SFMCInboxMessagesRefreshComplete, object: nil)
-      
+    }
+    OnStopObserving(onInboxResponseEvent) {
+      NotificationCenter.default.removeObserver(self, name: NSNotification.Name.SFMCInboxMessagesNewInboxMessages, object: nil)
+      NotificationCenter.default.removeObserver(self, name: NSNotification.Name.SFMCInboxMessagesRefreshComplete, object: nil)
+    }
+    
+    // Event: onRegistrationResponseSucceededEvent
+    OnStartObserving(onRegistrationResponseSucceededEvent) {
       SFMCSdk.requestPushSdk { mp in
         mp.setRegistrationCallback() { response in
           self.sendEvent("onRegistrationResponseSucceeded", ["response": response])
         }
       }
     }
-    
-    OnStopObserving {
-      NotificationCenter.default.removeObserver(self, name: NSNotification.Name.SFMCInboxMessagesNewInboxMessages, object: nil)
-      
-      NotificationCenter.default.removeObserver(self, name: NSNotification.Name.SFMCInboxMessagesRefreshComplete, object: nil)
-      
+    OnStopObserving(onRegistrationResponseSucceededEvent) {
       SFMCSdk.requestPushSdk { mp in
         mp.unsetRegistrationCallback()
       }
