@@ -2,6 +2,8 @@ package expo.modules.marketingcloudsdk
 
 import com.facebook.react.bridge.ReadableMap
 import com.salesforce.marketingcloud.InitializationStatus
+import com.salesforce.marketingcloud.MCLogListener
+import com.salesforce.marketingcloud.MarketingCloudSdk
 import com.salesforce.marketingcloud.sfmcsdk.SFMCSdk
 import com.salesforce.marketingcloud.sfmcsdk.components.events.EventManager
 import com.salesforce.marketingcloud.sfmcsdk.components.logging.LogLevel
@@ -19,7 +21,7 @@ import java.text.SimpleDateFormat
 
 
 class ExpoMarketingCloudSdkModule : Module() {
-  private var logListener : LogListener? = null
+  private var defaultLogLevel : Int = MCLogListener.WARN
   private var inboxResponseListener : InboxResponseListener? = null
   private var registrationListener : RegistrationEventListener? = null
 
@@ -191,22 +193,41 @@ class ExpoMarketingCloudSdkModule : Module() {
     AsyncFunction("startObserving") {eventName: String? ->
       when (eventName) {
         "onLog" -> {
-          if (logListener == null) {
-            val listener = object : LogListener {
-              override fun out(level: LogLevel, tag: String, message: String, throwable: Throwable?) {
-                sendEvent("onLog", mapOf(
-                        "level" to level.toString(),
-                        "subsystem" to tag,
-                        "category" to tag,
-                        "message" to message,
-                        "stackTrace" to throwable?.toString()
-                ))
-              }
-            }
+          defaultLogLevel = MarketingCloudSdk.getLogLevel()
 
-            SFMCSdk.setLogging(LogLevel.DEBUG, listener)
-            logListener = listener
-          }
+          SFMCSdk.setLogging(LogLevel.DEBUG, object : LogListener.AndroidLogger() {
+            override fun out(level: LogLevel, tag: String, message: String, throwable: Throwable?) {
+              sendEvent("onLog", mapOf(
+                "level" to level.toString(),
+                "subsystem" to tag,
+                "category" to tag,
+                "message" to message,
+                "stackTrace" to throwable?.toString()
+              ))
+              super.out(level, tag, message,  throwable)
+            }
+          })
+
+          MarketingCloudSdk.setLogLevel(MCLogListener.DEBUG)
+          MarketingCloudSdk.setLogListener(object : MCLogListener.AndroidLogListener() {
+            override fun out(level: Int, tag: String, message: String, throwable: Throwable?) {
+              sendEvent("onLog", mapOf(
+                "level" to when (level) {
+                  MCLogListener.VERBOSE -> "VERBOSE"
+                  MCLogListener.DEBUG -> "DEBUG"
+                  MCLogListener.WARN -> "WARN"
+                  MCLogListener.INFO -> "INFO"
+                  MCLogListener.ERROR -> "ERROR"
+                  else -> "DEBUG"
+                },
+                "subsystem" to tag,
+                "category" to tag,
+                "message" to message,
+                "stackTrace" to throwable?.toString()
+              ))
+              super.out(level, tag, message,  throwable)
+            }
+          })
         }
 
         "onInboxResponse" -> {
@@ -269,10 +290,17 @@ class ExpoMarketingCloudSdkModule : Module() {
 
       when (eventName) {
         "onLog" -> {
-          if (logListener != null) {
-            logListener = null
-            SFMCSdk.setLogging(LogLevel.WARN, null)
-          }
+          SFMCSdk.setLogging(when(defaultLogLevel) {
+            MCLogListener.VERBOSE -> LogLevel.DEBUG
+            MCLogListener.DEBUG -> LogLevel.DEBUG
+            MCLogListener.WARN -> LogLevel.WARN
+            MCLogListener.INFO -> LogLevel.DEBUG
+            MCLogListener.ERROR -> LogLevel.ERROR
+            else -> LogLevel.DEBUG
+          }, LogListener.AndroidLogger())
+
+          MarketingCloudSdk.setLogLevel(defaultLogLevel)
+          MarketingCloudSdk.setLogListener(MCLogListener.AndroidLogListener())
         }
 
         "onInboxResponse" -> {
