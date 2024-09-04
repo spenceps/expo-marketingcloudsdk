@@ -29,7 +29,7 @@ export const withIOSConfig: ConfigPlugin<MarketingCloudSdkPluginValidProps> = (
     config = withXcodeProjectExtension(config, props);
     config = withEasManagedCredentials(config, props);
   } else if (props.shouldCreateServiceExtension) {
-    console.warn('iosDevTeamId is required when shouldCreateServiceExtension is true. Extension not created.');
+    console.warn('[expo-marketingcloudsdk] iosDevTeamId is required when shouldCreateServiceExtension is true. Extension not created.');
   }
   return config;
 };
