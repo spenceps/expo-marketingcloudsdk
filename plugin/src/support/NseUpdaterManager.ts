@@ -1,29 +1,28 @@
 import {FileManager} from './FileManager';
-import {
-  BUNDLE_SHORT_VERSION_TEMPLATE_REGEX,
-  BUNDLE_VERSION_TEMPLATE_REGEX,
-  NSE_TARGET_NAME,
-} from './iosConstants';
-
-const plistFileName = `ExpoMarketingCloudSdkNSE-Info.plist`;
-
+interface Params {
+  iosPath: string;
+  targetName: string;
+  plistFileName: string;
+}
 export default class NseUpdaterManager {
   private nsePath = '';
-  constructor(iosPath: string) {
-    this.nsePath = `${iosPath}/${NSE_TARGET_NAME}`;
+  private plistFileName = '';
+  constructor({iosPath, targetName, plistFileName}: Params) {
+    this.nsePath = `${iosPath}/${targetName}`;
+    this.plistFileName = plistFileName;
   }
 
   async updateNSEBundleVersion(version: string): Promise<void> {
-    const plistFilePath = `${this.nsePath}/${plistFileName}`;
+    const plistFilePath = `${this.nsePath}/${this.plistFileName}`;
     let plistFile = await FileManager.readFile(plistFilePath);
-    plistFile = plistFile.replace(BUNDLE_VERSION_TEMPLATE_REGEX, version);
+    plistFile = plistFile.replace(/{{BUNDLE_VERSION}}/g, version);
     await FileManager.writeFile(plistFilePath, plistFile);
   }
 
   async updateNSEBundleShortVersion(version: string): Promise<void> {
-    const plistFilePath = `${this.nsePath}/${plistFileName}`;
+    const plistFilePath = `${this.nsePath}/${this.plistFileName}`;
     let plistFile = await FileManager.readFile(plistFilePath);
-    plistFile = plistFile.replace(BUNDLE_SHORT_VERSION_TEMPLATE_REGEX, version);
+    plistFile = plistFile.replace(/{{BUNDLE_SHORT_VERSION}}/g, version);
     await FileManager.writeFile(plistFilePath, plistFile);
   }
 }

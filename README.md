@@ -110,7 +110,7 @@ export const App: React.FC = () => {
 | `debug`                                       | boolean | No       | Enable logging debug messages                                                                                                                       |
 | `shouldCreateServiceExtension`                | boolean | No       | Creates the notification service extension to enable rich push notifications for iOS                                                                |
 | `iosNseBundleIdSuffix`                        | string  | No       | Sets the suffix of the notification service extension ios bundleId                                                                                  |
-| `iosDevTeamId`                                | string  | No*      | This is the teamID on developer.apple.com. Used to enabling signing of the bundle. Required if creating an extension                                |
+| `iosDevTeamId`                                | string  | No*      | This is the Team ID on developer.apple.com. It is used to sign the bundle. Required if creating an extension                                |
 
 # Usage
 

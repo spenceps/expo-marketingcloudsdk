@@ -11,7 +11,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { FileManager } from '../support/FileManager';
 import NseUpdaterManager from '../support/NseUpdaterManager';
-import { NSE_EXT_FILES, NSE_TARGET_NAME, TARGETED_DEVICE_FAMILY } from '../support/iosConstants';
+
+const targetName = 'ExpoMarketingCloudSdkNSE';
+const targetFiles = ['NotificationService.swift', `${targetName}-Info.plist`];
 
 import getEasManagedCredentialsConfigExtra from '../support/eas/getEasManagedCredentialsConfigExtra';
 import { ExpoConfig } from '@expo/config-types';
@@ -22,10 +24,12 @@ export const withIOSConfig: ConfigPlugin<MarketingCloudSdkPluginValidProps> = (
 ) => {
   config = withInfo(config, props)
   config = withRemoteNotificationsBackgroundMode(config, props)
-  if (props.shouldCreateServiceExtension) {
+  if (props.shouldCreateServiceExtension && props.iosDevTeamId) {
     config = withServiceExtension(config, props);
     config = withXcodeProjectExtension(config, props);
     config = withEasManagedCredentials(config, props);
+  } else if (props.shouldCreateServiceExtension) {
+    console.warn('iosDevTeamId is required when shouldCreateServiceExtension is true. Extension not created.');
   }
   return config;
 };
@@ -63,21 +67,20 @@ const withRemoteNotificationsBackgroundMode: ConfigPlugin<MarketingCloudSdkPlugi
 
 const withServiceExtension: ConfigPlugin<MarketingCloudSdkPluginValidProps> = (config, props) => {
   const pluginDir = require.resolve('@allboatsrise/expo-marketingcloudsdk/package.json');
-  const sourceDir = path.join(pluginDir, '../plugin/src/support/extension-files/');
+  const sourceDir = path.join(pluginDir, '../plugin/build/support/extension-files/');
   return withDangerousMod(config, [
     'ios',
     async config => {
       const iosPath = path.join(config.modRequest.projectRoot, 'ios');
+      fs.mkdirSync(`${iosPath}/${targetName}`, {recursive: true});
 
-      fs.mkdirSync(`${iosPath}/${NSE_TARGET_NAME}`, {recursive: true});
-
-      for (let i = 0; i < NSE_EXT_FILES.length; i++) {
-        const extFile = NSE_EXT_FILES[i];
-        const targetFile = `${iosPath}/${NSE_TARGET_NAME}/${extFile}`;
+      for (let i = 0; i < targetFiles.length; i++) {
+        const extFile = targetFiles[i];
+        const targetFile = `${iosPath}/${targetName}/${extFile}`;
         await FileManager.copyFile(`${sourceDir}${extFile}`, targetFile);
       }
-
-      const nseUpdater = new NseUpdaterManager(iosPath);
+      console.log('version numbers', config.ios?.buildNumber, config?.version);
+      const nseUpdater = new NseUpdaterManager({iosPath, targetName, plistFileName: `${targetName}-Info.plist`});
       await nseUpdater.updateNSEBundleVersion(config.ios?.buildNumber ?? '1');
       await nseUpdater.updateNSEBundleShortVersion(config?.version ?? '1.0.0');
 
@@ -93,12 +96,12 @@ const withXcodeProjectExtension: ConfigPlugin<MarketingCloudSdkPluginValidProps>
   return withXcodeProject(config, newConfig => {
     const xcodeProject = newConfig.modResults;
 
-    if (xcodeProject.pbxTargetByName(NSE_TARGET_NAME)) {
+    if (xcodeProject.pbxTargetByName(targetName)) {
       return newConfig;
     }
 
     // Create new PBXGroup for the extension
-    const extGroup = xcodeProject.addPbxGroup([...NSE_EXT_FILES], NSE_TARGET_NAME, NSE_TARGET_NAME);
+    const extGroup = xcodeProject.addPbxGroup([...targetFiles], targetName, targetName);
 
     // Add the new PBXGroup to the top level group. This makes the
     // files / folder appear in the file explorer in Xcode.
@@ -124,10 +127,10 @@ const withXcodeProjectExtension: ConfigPlugin<MarketingCloudSdkPluginValidProps>
     // Add the NSE target
     // This adds PBXTargetDependency and PBXContainerItemProxy for you
     const nseTarget = xcodeProject.addTarget(
-      NSE_TARGET_NAME,
+      targetName,
       'app_extension',
-      NSE_TARGET_NAME,
-      `${config.ios?.bundleIdentifier}.${props.iosNseBundleIdSuffix ?? NSE_TARGET_NAME}`,
+      targetName,
+      `${config.ios?.bundleIdentifier}.${props.iosNseBundleIdSuffix ?? targetName}`,
     );
 
     // Add build phases to the new target
@@ -145,12 +148,12 @@ const withXcodeProjectExtension: ConfigPlugin<MarketingCloudSdkPluginValidProps>
     for (const key in configurations) {
       if (
         typeof configurations[key].buildSettings !== 'undefined' &&
-        configurations[key].buildSettings.PRODUCT_NAME === `"${NSE_TARGET_NAME}"`
+        configurations[key].buildSettings.PRODUCT_NAME === `"${targetName}"`
       ) {
         const buildSettingsObj = configurations[key].buildSettings;
         buildSettingsObj.SWIFT_VERSION = '5.4';
         buildSettingsObj.DEVELOPMENT_TEAM = props?.iosDevTeamId;
-        buildSettingsObj.TARGETED_DEVICE_FAMILY = TARGETED_DEVICE_FAMILY;
+        buildSettingsObj.TARGETED_DEVICE_FAMILY = `"1,2"`;
         buildSettingsObj.CODE_SIGN_STYLE = 'Automatic';
       }
     }
@@ -165,8 +168,11 @@ const withEasManagedCredentials: ConfigPlugin<MarketingCloudSdkPluginValidProps>
   props,
 ) => {
   config.extra = getEasManagedCredentialsConfigExtra(
-    config as ExpoConfig,
-    props?.iosNseBundleIdSuffix,
+    {
+      config: config as ExpoConfig,
+      targetName,
+      bundleSuffix: props?.iosNseBundleIdSuffix,
+    }
   );
   return config;
 };

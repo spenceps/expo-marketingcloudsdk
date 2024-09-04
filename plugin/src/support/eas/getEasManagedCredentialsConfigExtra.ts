@@ -1,11 +1,12 @@
 import {ExpoConfig} from '@expo/config-types';
 
-import {NSE_TARGET_NAME} from '../iosConstants';
+interface Params {
+  config: ExpoConfig;
+  targetName: string;
+  bundleSuffix?: string;
+}
 
-export default function getEasManagedCredentialsConfigExtra(
-  config: ExpoConfig,
-  bundleSuffix?: String,
-): {
+export default function getEasManagedCredentialsConfigExtra({ config, targetName, bundleSuffix}: Params): {
   [k: string]: any;
 } {
   return {
@@ -22,9 +23,9 @@ export default function getEasManagedCredentialsConfigExtra(
               ...(config.extra?.eas?.build?.experimental?.ios?.appExtensions ?? []),
               {
                 // keep in sync with native changes in NSE
-                targetName: NSE_TARGET_NAME,
+                targetName: targetName,
                 bundleIdentifier: `${config?.ios?.bundleIdentifier}.${
-                  bundleSuffix ?? NSE_TARGET_NAME
+                  bundleSuffix ?? targetName
                 }`,
               },
             ],
