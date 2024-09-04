@@ -79,7 +79,6 @@ const withServiceExtension: ConfigPlugin<MarketingCloudSdkPluginValidProps> = (c
         const targetFile = `${iosPath}/${targetName}/${extFile}`;
         await FileManager.copyFile(`${sourceDir}${extFile}`, targetFile);
       }
-      console.log('version numbers', config.ios?.buildNumber, config?.version);
       const nseUpdater = new NseUpdaterManager({iosPath, targetName, plistFileName: `${targetName}-Info.plist`});
       await nseUpdater.updateNSEBundleVersion(config.ios?.buildNumber ?? '1');
       await nseUpdater.updateNSEBundleShortVersion(config?.version ?? '1.0.0');
