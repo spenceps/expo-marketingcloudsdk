@@ -3,6 +3,7 @@ package expo.modules.marketingcloudsdk
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import android.app.PendingIntent
 import com.salesforce.marketingcloud.MCLogListener
 import com.salesforce.marketingcloud.MarketingCloudConfig
 import com.salesforce.marketingcloud.MarketingCloudSdk
@@ -12,7 +13,9 @@ import com.salesforce.marketingcloud.sfmcsdk.SFMCSdk
 import com.salesforce.marketingcloud.sfmcsdk.SFMCSdkModuleConfig
 import com.salesforce.marketingcloud.sfmcsdk.components.logging.LogLevel
 import com.salesforce.marketingcloud.sfmcsdk.components.logging.LogListener
+import com.salesforce.marketingcloud.notifications.NotificationManager
 import expo.modules.core.interfaces.ApplicationLifecycleListener
+import kotlin.random.Random
 
 class ExpoMarketingCloudSdkApplicationLifecycleListener : ApplicationLifecycleListener {
   override fun onCreate(application: Application) {
@@ -42,16 +45,45 @@ class ExpoMarketingCloudSdkApplicationLifecycleListener : ApplicationLifecycleLi
         if(getSenderId(application) != "") setSenderId(getSenderId(application))
         setInboxEnabled(getInboxEnabled(application))
         setMarkMessageReadOnInboxNotificationOpen(getMarkMessageReadOnInboxNotificationOpen(application))
-        setNotificationCustomizationOptions(
-                NotificationCustomizationOptions.create(R.drawable.notification_icon)
-        )
+        setNotificationCustomizationOptions(getNotificationOptions(application))
       }.build(application)
     }) { initStatus ->
       // TODO handle initialization status
       Log.e("SMFCSdk: initStatus", initStatus.toString())
     }
   }
-  
+
+  private fun getNotificationOptions(context: Context): NotificationCustomizationOptions {
+    return NotificationCustomizationOptions.create { context, notificationMessage ->
+      val builder = NotificationManager.getDefaultNotificationBuilder(
+        context,
+        notificationMessage,
+        NotificationManager.createDefaultNotificationChannel(context),
+        R.drawable.notification_icon
+      )
+      builder.setContentIntent(
+        NotificationManager.redirectIntentForAnalytics(
+          context,
+          PendingIntent.getActivity(
+            context,
+            Random.Default.nextInt(),
+            context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+              // Add custom keys to the intent
+              notificationMessage.customKeys.forEach { (key, value) ->
+                putExtra(key, value)
+              }
+              if (!notificationMessage.url.isNullOrEmpty()) {
+                putExtra("url", notificationMessage.url)
+              }
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+          ),
+          notificationMessage,
+          true
+        )
+      )
+    }
+  }
   private fun getDebug(context: Context): Boolean = context.resources.getString(R.string.expo_marketingcloudsdk_debug) == "true"
   private fun getAppId(context: Context): String = context.resources.getString(R.string.expo_marketingcloudsdk_app_id)
   private fun getAccessToken(context: Context): String = context.resources.getString(R.string.expo_marketingcloudsdk_access_token)
